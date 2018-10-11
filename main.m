@@ -4,6 +4,9 @@ close all;
 %% Load vehicle parameters
 run parameters.m
 
+Gc = load('Youla_controller.mat','Gc');
+Gc = Gc.Gc;
+
 %% Define initial conditions
 U_0 = 100/3.6;
 disp(['Initial velocity: ',num2str(3.6*U_0),' km/h'])
