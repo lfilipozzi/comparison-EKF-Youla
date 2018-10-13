@@ -3,4 +3,6 @@
 
 # Ignore files with following extension:
 *.slx.autosave
+*.slx.original
 *.slx.r2016b
+*.m~

@@ -76,7 +76,14 @@ K_sf_R = 200*180/pi;   % Motor axle halfshaft compliance (Nm/rad)
 b_sf_R = 0.8*180/pi;   % Motor axle halfshaft damping  (Nms/rad)
 
 %% Tire parameters
+% Dugoff tire model
 Cx = 866.05/0.02;           % Tire longitudinal stiffness
 Cy = 248.08/(0.5*pi/180);   % Tire lateral stiffness
 epsDugoff = 0.01;
+
+% Burckhardt tire model
+c1 = 1.2801;
+c2 = 23.99;
+c3 = 0.25;
+
 

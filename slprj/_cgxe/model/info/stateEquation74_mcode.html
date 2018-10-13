@@ -1,0 +1,391 @@
+<html>
+<body>
+<script src="resources/eml_report_loadable_data.js"></script>
+<div class="dead">
+<pre class="code">
+<span class="srcline"><span class="lineno"><a href="3,1" id="srcline1">  1</a></span><span class="line"><span class="keyword">classdef</span> extendedKalmanFilter &lt; matlab.System &amp; <span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,2" id="srcline2">  2</a></span><span class="line">        matlab.system.mixin.Propagates &amp; <span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,3" id="srcline3">  3</a></span><span class="line">        matlab.system.mixin.SampleTime &amp; <span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,4" id="srcline4">  4</a></span><span class="line">        matlab.system.mixin.CustomIcon </span></span>
+<span class="srcline"><span class="lineno"><a href="3,5" id="srcline5">  5</a></span><span class="line">    <span class="comment">% extendedKalmanFilter Simulink implementation of an EKF</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,6" id="srcline6">  6</a></span><span class="line">    <span class="comment">%</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,7" id="srcline7">  7</a></span><span class="line">    <span class="comment">% This files includes a template to implement an extended Kalman filter</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,8" id="srcline8">  8</a></span><span class="line">    <span class="comment">% in Simulink.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,9" id="srcline9">  9</a></span><span class="line">    <span class="comment">% The only properties and methods that needs to be modified are:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,10" id="srcline10"> 10</a></span><span class="line">    <span class="comment">% - x_init</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,11" id="srcline11"> 11</a></span><span class="line">    <span class="comment">% - nb_state</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,12" id="srcline12"> 12</a></span><span class="line">    <span class="comment">% - nb_input</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,13" id="srcline13"> 13</a></span><span class="line">    <span class="comment">% - nb_output</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,14" id="srcline14"> 14</a></span><span class="line">    <span class="comment">% - linearizedStateMatrices</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,15" id="srcline15"> 15</a></span><span class="line">    <span class="comment">% - linearizedOutputMatrices</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,16" id="srcline16"> 16</a></span><span class="line">    <span class="comment">% - stateEquation</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,17" id="srcline17"> 17</a></span><span class="line">    <span class="comment">% - outputEquation</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,18" id="srcline18"> 18</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,19" id="srcline19"> 19</a></span><span class="line">    <span class="comment">% Public, tunable properties</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,20" id="srcline20"> 20</a></span><span class="line">    <span class="keyword">properties</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,21" id="srcline21"> 21</a></span><span class="line">        <span class="comment">% Number of state of the model</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,22" id="srcline22"> 22</a></span><span class="line">        nb_state  = 5;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,23" id="srcline23"> 23</a></span><span class="line">        <span class="comment">% Number of input of the model</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,24" id="srcline24"> 24</a></span><span class="line">        nb_input  = 1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,25" id="srcline25"> 25</a></span><span class="line">        <span class="comment">% Number of output of the model</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,26" id="srcline26"> 26</a></span><span class="line">        nb_output = 3;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,27" id="srcline27"> 27</a></span><span class="line">        <span class="comment">% Initial state</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,28" id="srcline28"> 28</a></span><span class="line">        x_init = [0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,29" id="srcline29"> 29</a></span><span class="line">                (50/3.6)/0.3250*9.9649;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,30" id="srcline30"> 30</a></span><span class="line">                (50/3.6)/0.3250;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,31" id="srcline31"> 31</a></span><span class="line">                (50/3.6)/0.3250;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,32" id="srcline32"> 32</a></span><span class="line">                (50/3.6)];</span></span>
+<span class="srcline"><span class="lineno"><a href="3,33" id="srcline33"> 33</a></span><span class="line">        <span class="comment">% Sampling time</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,34" id="srcline34"> 34</a></span><span class="line">        Ts = 0.1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,35" id="srcline35"> 35</a></span><span class="line">        <span class="comment">% Halfshaft compliance</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,36" id="srcline36"> 36</a></span><span class="line">        K_hsf = 2.2918e+03;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,37" id="srcline37"> 37</a></span><span class="line">        <span class="comment">% Halfshaft damping</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,38" id="srcline38"> 38</a></span><span class="line">        b_hsf = 22.9183;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,39" id="srcline39"> 39</a></span><span class="line">        <span class="comment">% Gearbox ratio</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,40" id="srcline40"> 40</a></span><span class="line">        G = 9.9649;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,41" id="srcline41"> 41</a></span><span class="line">        <span class="comment">% Motor inertia</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,42" id="srcline42"> 42</a></span><span class="line">        Jm_R = 0.0351;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,43" id="srcline43"> 43</a></span><span class="line">        <span class="comment">% Wheel radius</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,44" id="srcline44"> 44</a></span><span class="line">        rw = 0.3250;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,45" id="srcline45"> 45</a></span><span class="line">        <span class="comment">% Wheel inertia</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,46" id="srcline46"> 46</a></span><span class="line">        Jw = 0.9;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,47" id="srcline47"> 47</a></span><span class="line">        <span class="comment">% Vehicle mass</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,48" id="srcline48"> 48</a></span><span class="line">        m = 1530;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,49" id="srcline49"> 49</a></span><span class="line">        <span class="comment">% Burckhardt parameters</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,50" id="srcline50"> 50</a></span><span class="line">        c1 = 1.2801;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,51" id="srcline51"> 51</a></span><span class="line">        c2 = 23.99;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,52" id="srcline52"> 52</a></span><span class="line">        c3 = 0.25;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,53" id="srcline53"> 53</a></span><span class="line">        <span class="comment">% Normal forces</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,54" id="srcline54"> 54</a></span><span class="line">        fRLz0 = 2.9695e+03;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,55" id="srcline55"> 55</a></span><span class="line">        fRRz0 = 2.9695e+03;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,56" id="srcline56"> 56</a></span><span class="line">    <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,57" id="srcline57"> 57</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,58" id="srcline58"> 58</a></span><span class="line">    <span class="keyword">properties</span>(DiscreteState)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,59" id="srcline59"> 59</a></span><span class="line">        x_apriori</span></span>
+<span class="srcline"><span class="lineno"><a href="3,60" id="srcline60"> 60</a></span><span class="line">        x_aposteriori</span></span>
+<span class="srcline"><span class="lineno"><a href="3,61" id="srcline61"> 61</a></span><span class="line">        P_apriori</span></span>
+<span class="srcline"><span class="lineno"><a href="3,62" id="srcline62"> 62</a></span><span class="line">        P_aposteriori</span></span>
+<span class="srcline"><span class="lineno"><a href="3,63" id="srcline63"> 63</a></span><span class="line">        u_k</span></span>
+<span class="srcline"><span class="lineno"><a href="3,64" id="srcline64"> 64</a></span><span class="line">        Q_k</span></span>
+<span class="srcline"><span class="lineno"><a href="3,65" id="srcline65"> 65</a></span><span class="line">    <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,66" id="srcline66"> 66</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,67" id="srcline67"> 67</a></span><span class="line">    <span class="comment">% Pre-computed constants</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,68" id="srcline68"> 68</a></span><span class="line">    <span class="keyword">properties</span>(Access = private)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,69" id="srcline69"> 69</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,70" id="srcline70"> 70</a></span><span class="line">    <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,71" id="srcline71"> 71</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,72" id="srcline72"> 72</a></span><span class="line">    <span class="keyword">methods</span>(Access = protected)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,73" id="srcline73"> 73</a></span><span class="line">        <span class="keyword">function</span> setupImpl(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,74" id="srcline74"> 74</a></span><span class="line">            <span class="comment">% Perform one-time calculations, such as computing constants</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,75" id="srcline75"> 75</a></span><span class="line">            obj.Ts = 0.1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,76" id="srcline76"> 76</a></span><span class="line"><span class="comment">%             obj.Ts = getSampleTime(obj);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,77" id="srcline77"> 77</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,78" id="srcline78"> 78</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,79" id="srcline79"> 79</a></span><span class="line">        <span class="keyword">function</span> [x_aposteriori, P_aposteriori] = stepImpl(obj,u_k,y_k,<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,80" id="srcline80"> 80</a></span><span class="line">                Q_k,R_k)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,81" id="srcline81"> 81</a></span><span class="line">            <span class="comment">% Implement algorithm. Return the a posteriori estimate and the</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,82" id="srcline82"> 82</a></span><span class="line">            <span class="comment">% covariance matrix at the following timestep</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,83" id="srcline83"> 83</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,84" id="srcline84"> 84</a></span><span class="line">            <span class="comment">% Shift register: Save the input and covariance matrix for the</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,85" id="srcline85"> 85</a></span><span class="line">            <span class="comment">% next timestep and obtain the one from the last timestep</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,86" id="srcline86"> 86</a></span><span class="line">            u_prev = obj.u_k;   <span class="comment">% u_{k-1}</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,87" id="srcline87"> 87</a></span><span class="line">            obj.u_k = u_k;      <span class="comment">% u_{k}</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,88" id="srcline88"> 88</a></span><span class="line">            Q_prev = obj.Q_k;   <span class="comment">% Q_{k-1}</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,89" id="srcline89"> 89</a></span><span class="line">            obj.Q_k = Q_k;      <span class="comment">% Q_{k}</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,90" id="srcline90"> 90</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,91" id="srcline91"> 91</a></span><span class="line">            <span class="comment">% Model update</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,92" id="srcline92"> 92</a></span><span class="line">            [A,E] = linearizedStateMatrices(obj);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,93" id="srcline93"> 93</a></span><span class="line">            <span class="comment">%obj.x_apriori = stateEquation(obj.x_aposteriori,u_prev);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,94" id="srcline94"> 94</a></span><span class="line">            <span class="comment">%obj.x_apriori = rungeKutta4_stateEquation(obj,u_prev,u_k,h);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,95" id="srcline95"> 95</a></span><span class="line">            obj.x_apriori = forwardEuler_stateEquation(obj,u_prev);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,96" id="srcline96"> 96</a></span><span class="line">            obj.P_apriori = A*obj.P_aposteriori*A' + E*Q_prev*E';</span></span>
+<span class="srcline"><span class="lineno"><a href="3,97" id="srcline97"> 97</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,98" id="srcline98"> 98</a></span><span class="line">            <span class="comment">% Measurement update</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,99" id="srcline99"> 99</a></span><span class="line">            [C,F] = linearizedOutputMatrices(obj);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,100" id="srcline100">100</a></span><span class="line">            L = obj.P_apriori*C' / (C*obj.P_apriori*C' + F*R_k*F');</span></span>
+<span class="srcline"><span class="lineno"><a href="3,101" id="srcline101">101</a></span><span class="line">            obj.x_aposteriori = obj.x_apriori + L * (y_k - <span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,102" id="srcline102">102</a></span><span class="line">                outputEquation(obj.x_apriori,u_k));</span></span>
+<span class="srcline"><span class="lineno"><a href="3,103" id="srcline103">103</a></span><span class="line">            obj.P_aposteriori = obj.P_apriori - L*C*obj.P_apriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,104" id="srcline104">104</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,105" id="srcline105">105</a></span><span class="line">            <span class="comment">% Return outputs</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,106" id="srcline106">106</a></span><span class="line">            x_aposteriori = obj.x_aposteriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,107" id="srcline107">107</a></span><span class="line">            P_aposteriori = obj.P_aposteriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,108" id="srcline108">108</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,109" id="srcline109">109</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,110" id="srcline110">110</a></span><span class="line">        <span class="keyword">function</span> resetImpl(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,111" id="srcline111">111</a></span><span class="line">            <span class="comment">% Initialize / reset discrete-state properties</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,112" id="srcline112">112</a></span><span class="line">            obj.x_aposteriori = obj.x_init;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,113" id="srcline113">113</a></span><span class="line">            obj.P_aposteriori = zeros(obj.nb_state);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,114" id="srcline114">114</a></span><span class="line">            obj.u_k = zeros(obj.nb_input,1);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,115" id="srcline115">115</a></span><span class="line">            obj.Q_k = zeros(obj.nb_input);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,116" id="srcline116">116</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,117" id="srcline117">117</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,118" id="srcline118">118</a></span><span class="line">        <span class="keyword">function</span> sts = getSampleTimeImpl(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,119" id="srcline119">119</a></span><span class="line">            sts = createSampleTime(obj,<span class="string">'Type'</span>,<span class="string">'Discrete Periodic'</span>,<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,120" id="srcline120">120</a></span><span class="line">              <span class="string">'SampleTime'</span>,obj.Ts,<span class="string">'OffsetTime'</span>,0);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,121" id="srcline121">121</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,122" id="srcline122">122</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,123" id="srcline123">123</a></span><span class="line">        <span class="keyword">function</span> ds = getDiscreteStateImpl(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,124" id="srcline124">124</a></span><span class="line">            <span class="comment">% Return structure of properties with DiscreteState attribute</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,125" id="srcline125">125</a></span><span class="line">            ds = obj.x_aposteriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,126" id="srcline126">126</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,127" id="srcline127">127</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,128" id="srcline128">128</a></span><span class="line">        <span class="keyword">function</span> flag = isInputSizeLockedImpl(~,~)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,129" id="srcline129">129</a></span><span class="line">            <span class="comment">% Return true if input size is not allowed to change while</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,130" id="srcline130">130</a></span><span class="line">            <span class="comment">% system is running</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,131" id="srcline131">131</a></span><span class="line">            flag = true;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,132" id="srcline132">132</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,133" id="srcline133">133</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,134" id="srcline134">134</a></span><span class="line">        <span class="keyword">function</span> icon = getIconImpl(~)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,135" id="srcline135">135</a></span><span class="line">            <span class="comment">% Define icon for System block</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,136" id="srcline136">136</a></span><span class="line">            icon = <span class="string">'Extended Kalman Filter'</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,137" id="srcline137">137</a></span><span class="line">            <span class="comment">% icon = {'My','System'}; % Example: multi-line text icon</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,138" id="srcline138">138</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,139" id="srcline139">139</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,140" id="srcline140">140</a></span><span class="line">        <span class="keyword">function</span> [c1, c2] = isOutputFixedSizeImpl(~)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,141" id="srcline141">141</a></span><span class="line">            <span class="comment">% Return true if output size is not allowed to change while</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,142" id="srcline142">142</a></span><span class="line">            <span class="comment">% system is running</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,143" id="srcline143">143</a></span><span class="line">            c1 = true;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,144" id="srcline144">144</a></span><span class="line">            c2 = true;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,145" id="srcline145">145</a></span><span class="line">       <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,146" id="srcline146">146</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,147" id="srcline147">147</a></span><span class="line">        <span class="keyword">function</span> [sz_1, sz_2] = getOutputSizeImpl(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,148" id="srcline148">148</a></span><span class="line">            <span class="comment">% Return size for each output port</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,149" id="srcline149">149</a></span><span class="line">              sz_1 = [obj.nb_state 1]; </span></span>
+<span class="srcline"><span class="lineno"><a href="3,150" id="srcline150">150</a></span><span class="line">              sz_2 = [obj.nb_state obj.nb_state]; </span></span>
+<span class="srcline"><span class="lineno"><a href="3,151" id="srcline151">151</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,152" id="srcline152">152</a></span><span class="line">            <span class="comment">% Example: inherit size from first input port</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,153" id="srcline153">153</a></span><span class="line">            <span class="comment">% out = propagatedInputSize(obj,1);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,154" id="srcline154">154</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,155" id="srcline155">155</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,156" id="srcline156">156</a></span><span class="line">        <span class="keyword">function</span> [out1, out2] = getOutputDataTypeImpl(~)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,157" id="srcline157">157</a></span><span class="line">            out1 = <span class="string">'double'</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,158" id="srcline158">158</a></span><span class="line">            out2 = <span class="string">'double'</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,159" id="srcline159">159</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,160" id="srcline160">160</a></span><span class="line">      </span></span>
+<span class="srcline"><span class="lineno"><a href="3,161" id="srcline161">161</a></span><span class="line">        <span class="keyword">function</span> [c1, c2] = isOutputComplexImpl(~)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,162" id="srcline162">162</a></span><span class="line">            c1 = false;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,163" id="srcline163">163</a></span><span class="line">            c2 = false;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,164" id="srcline164">164</a></span><span class="line">       <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,165" id="srcline165">165</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,166" id="srcline166">166</a></span><span class="line"><span class="comment">%         function x_next = rungeKutta4_stateEquation(obj,u_prev,u_k)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,167" id="srcline167">167</a></span><span class="line"><span class="comment">%             % Implement 4-th order Runge-Kutta method of the state equation</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,168" id="srcline168">168</a></span><span class="line"><span class="comment">%             </span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,169" id="srcline169">169</a></span><span class="line"><span class="comment">%             % TODO: Why using RK4 when Forward-Euler is used to compute the A and</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,170" id="srcline170">170</a></span><span class="line"><span class="comment">%             % C matrices? Replace to use Forward Euler</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,171" id="srcline171">171</a></span><span class="line"><span class="comment">%             </span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,172" id="srcline172">172</a></span><span class="line"><span class="comment">%             x = obj.x_aposteriori;</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,173" id="srcline173">173</a></span><span class="line"><span class="comment">%             h = obj.Ts;</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,174" id="srcline174">174</a></span><span class="line"><span class="comment">%             </span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,175" id="srcline175">175</a></span><span class="line"><span class="comment">%             % TODO: obtain the value of u2 (the value of u1 has already</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,176" id="srcline176">176</a></span><span class="line"><span class="comment">%             % been saved in the discrete state)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,177" id="srcline177">177</a></span><span class="line"><span class="comment">%             u1 = u_prev;    % input at t = tn</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,178" id="srcline178">178</a></span><span class="line"><span class="comment">%             u2 = % input at t = tn + h/2</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,179" id="srcline179">179</a></span><span class="line"><span class="comment">%             u3 = u_k;       % input at t = tn + h</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,180" id="srcline180">180</a></span><span class="line"><span class="comment">%             </span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,181" id="srcline181">181</a></span><span class="line"><span class="comment">%             k1 = h * obj.stateEquation(x     ,u1);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,182" id="srcline182">182</a></span><span class="line"><span class="comment">%             k2 = h * obj.stateEquation(x+k1/2,u2);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,183" id="srcline183">183</a></span><span class="line"><span class="comment">%             k3 = h * obj.stateEquation(x+k2/2,u2);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,184" id="srcline184">184</a></span><span class="line"><span class="comment">%             k4 = h * obj.stateEquation(x+k3  ,u3);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,185" id="srcline185">185</a></span><span class="line"><span class="comment">%             </span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,186" id="srcline186">186</a></span><span class="line"><span class="comment">%             x_next = x + (k1 + 2*k2 + 2*k3 + k4)/6;</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,187" id="srcline187">187</a></span><span class="line"><span class="comment">%         end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,188" id="srcline188">188</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,189" id="srcline189">189</a></span><span class="line">        <span class="keyword">function</span> x_next = forwardEuler_stateEquation(obj,u_prev)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,190" id="srcline190">190</a></span><span class="line">            <span class="comment">% Implement forward-Euler approximation of the state equation</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,191" id="srcline191">191</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,192" id="srcline192">192</a></span><span class="line">            x = obj.x_aposteriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,193" id="srcline193">193</a></span><span class="line">            h = obj.Ts;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,194" id="srcline194">194</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,195" id="srcline195">195</a></span><span class="line">            x_dot = obj.stateEquation(x,u_prev);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,196" id="srcline196">196</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,197" id="srcline197">197</a></span><span class="line">            x_next = x + x_dot * h;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,198" id="srcline198">198</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,199" id="srcline199">199</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,200" id="srcline200">200</a></span><span class="line">        <span class="keyword">function</span> [A,E] = linearizedStateMatrices(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,201" id="srcline201">201</a></span><span class="line">            <span class="comment">% Return the A and E matrices.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,202" id="srcline202">202</a></span><span class="line">            <span class="comment">% A is the linearized state equation with respect to the state</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,203" id="srcline203">203</a></span><span class="line">            <span class="comment">% evaluated at the previous a posteriori estimate.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,204" id="srcline204">204</a></span><span class="line">            <span class="comment">% E is the linearized state equation with respect to the noise</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,205" id="srcline205">205</a></span><span class="line">            <span class="comment">% evaluated at the previous a posteriori estimate.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,206" id="srcline206">206</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,207" id="srcline207">207</a></span><span class="line">            x = obj.x_aposteriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,208" id="srcline208">208</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,209" id="srcline209">209</a></span><span class="line">            <span class="comment">% Load parameters</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,210" id="srcline210">210</a></span><span class="line">            K_hsf = obj.K_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,211" id="srcline211">211</a></span><span class="line">            b_hsf = obj.b_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,212" id="srcline212">212</a></span><span class="line">            G     = obj.G;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,213" id="srcline213">213</a></span><span class="line">            Jm_R  = obj.Jm_R;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,214" id="srcline214">214</a></span><span class="line">            rw    = obj.rw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,215" id="srcline215">215</a></span><span class="line">            Jw    = obj.Jw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,216" id="srcline216">216</a></span><span class="line">            m     = obj.m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,217" id="srcline217">217</a></span><span class="line">            c1    = obj.c1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,218" id="srcline218">218</a></span><span class="line">            c2    = obj.c2;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,219" id="srcline219">219</a></span><span class="line">            c3    = obj.c3;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,220" id="srcline220">220</a></span><span class="line">            fRLz0 = obj.fRLz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,221" id="srcline221">221</a></span><span class="line">            fRRz0 = obj.fRRz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,222" id="srcline222">222</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,223" id="srcline223">223</a></span><span class="line">            theta_hsf = x(1);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,224" id="srcline224">224</a></span><span class="line">            wm_R  = x(2);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,225" id="srcline225">225</a></span><span class="line">            ww_RL = x(3);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,226" id="srcline226">226</a></span><span class="line">            ww_RR = x(4);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,227" id="srcline227">227</a></span><span class="line">            U     = x(5);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,228" id="srcline228">228</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,229" id="srcline229">229</a></span><span class="line">            A = [                 0,                   2/G,                                                                           -1,                                                                           -1,                                                                                                                                                                                                                      0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,230" id="srcline230">230</a></span><span class="line">                -(2*K_hsf)/(G*Jm_R), -(4*b_hsf)/(G^2*Jm_R),                                                           (2*b_hsf)/(G*Jm_R),                                                           (2*b_hsf)/(G*Jm_R),                                                                                                                                                                                                                      0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,231" id="srcline231">231</a></span><span class="line">                           K_hsf/Jw,      (2*b_hsf)/(G*Jw), -(b_hsf - fRLz0*rw*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RL))/U))/U))/Jw,                                                                    -b_hsf/Jw,                                                                                                        (fRLz0*rw*((c3*(U - rw*ww_RL))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RL))/U)*(c2/U - (c2*(U - rw*ww_RL))/U^2)))/Jw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,232" id="srcline232">232</a></span><span class="line">                           K_hsf/Jw,      (2*b_hsf)/(G*Jw),                                                                    -b_hsf/Jw, -(b_hsf - fRRz0*rw*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RR))/U))/U))/Jw,                                                                                                        (fRRz0*rw*((c3*(U - rw*ww_RR))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RR))/U)*(c2/U - (c2*(U - rw*ww_RR))/U^2)))/Jw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,233" id="srcline233">233</a></span><span class="line">                                  0,                     0,             -(fRLz0*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RL))/U))/U))/m,             -(fRRz0*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RR))/U))/U))/m, -(fRLz0*((c3*(U - rw*ww_RL))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RL))/U)*(c2/U - (c2*(U - rw*ww_RL))/U^2)) + fRRz0*((c3*(U - rw*ww_RR))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RR))/U)*(c2/U - (c2*(U - rw*ww_RR))/U^2)))/m];</span></span>
+<span class="srcline"><span class="lineno"><a href="3,234" id="srcline234">234</a></span><span class="line">            A = eye(obj.nb_state) + A * obj.Ts;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,235" id="srcline235">235</a></span><span class="line">            E = eye(obj.nb_input);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,236" id="srcline236">236</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,237" id="srcline237">237</a></span><span class="line">        </span></span>
+<span class="srcline"><span class="lineno"><a href="3,238" id="srcline238">238</a></span><span class="line">        <span class="keyword">function</span> [C,F] = linearizedOutputMatrices(obj)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,239" id="srcline239">239</a></span><span class="line">            <span class="comment">% Return the C, and F matrices.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,240" id="srcline240">240</a></span><span class="line">            <span class="comment">% C is the linearized output equation with respect to the state</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,241" id="srcline241">241</a></span><span class="line">            <span class="comment">% evaluated at the current a priori estimate.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,242" id="srcline242">242</a></span><span class="line">            <span class="comment">% F is the linearized output equation with respect to the noise</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,243" id="srcline243">243</a></span><span class="line">            <span class="comment">% evaluated at the current a priori estimate.</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,244" id="srcline244">244</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,245" id="srcline245">245</a></span><span class="line">            x = obj.x_apriori;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,246" id="srcline246">246</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,247" id="srcline247">247</a></span><span class="line">            <span class="comment">% Load parameters</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,248" id="srcline248">248</a></span><span class="line">            K_hsf = obj.K_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,249" id="srcline249">249</a></span><span class="line">            b_hsf = obj.b_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,250" id="srcline250">250</a></span><span class="line">            G     = obj.G;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,251" id="srcline251">251</a></span><span class="line">            Jm_R  = obj.Jm_R;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,252" id="srcline252">252</a></span><span class="line">            rw    = obj.rw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,253" id="srcline253">253</a></span><span class="line">            Jw    = obj.Jw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,254" id="srcline254">254</a></span><span class="line">            m     = obj.m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,255" id="srcline255">255</a></span><span class="line">            c1    = obj.c1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,256" id="srcline256">256</a></span><span class="line">            c2    = obj.c2;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,257" id="srcline257">257</a></span><span class="line">            c3    = obj.c3;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,258" id="srcline258">258</a></span><span class="line">            fRLz0 = obj.fRLz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,259" id="srcline259">259</a></span><span class="line">            fRRz0 = obj.fRRz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,260" id="srcline260">260</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,261" id="srcline261">261</a></span><span class="line">            <span class="comment">% theta_hsf = x(1);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,262" id="srcline262">262</a></span><span class="line">            <span class="comment">% wm_R  = x(2);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,263" id="srcline263">263</a></span><span class="line">            ww_RL = x(3);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,264" id="srcline264">264</a></span><span class="line">            ww_RR = x(4);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,265" id="srcline265">265</a></span><span class="line">            U     = x(5);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,266" id="srcline266">266</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,267" id="srcline267">267</a></span><span class="line">            C13 = -(fRLz0*((c3*rw)/U-(c1*c2*rw*exp((c2*(U-rw*ww_RL))/U))<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,268" id="srcline268">268</a></span><span class="line">                /U))/m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,269" id="srcline269">269</a></span><span class="line">            C14 = -(fRRz0*((c3*rw)/U-(c1*c2*rw*exp((c2*(U-rw*ww_RR))/U))<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,270" id="srcline270">270</a></span><span class="line">                /U))/m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,271" id="srcline271">271</a></span><span class="line">            C15 = -(fRLz0*((c3*(U-rw*ww_RL))/U^2-c3/U+c1*<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,272" id="srcline272">272</a></span><span class="line">                exp((c2*(U-rw*ww_RL))/U)*(c2/U-(c2*(U-rw*ww_RL))/U^2))+<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,273" id="srcline273">273</a></span><span class="line">                fRRz0*((c3*(U-rw*ww_RR))/U^2-c3/U+c1*<span class="keyword">...</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,274" id="srcline274">274</a></span><span class="line">                exp((c2*(U-rw*ww_RR))/U)*(c2/U-(c2*(U-rw*ww_RR))/U^2)))/m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,275" id="srcline275">275</a></span><span class="line">            C = [0 0 C13 C14 C15;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,276" id="srcline276">276</a></span><span class="line">                 0 0 1   0   0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,277" id="srcline277">277</a></span><span class="line">                 0 0 0   1   0];</span></span>
+<span class="srcline"><span class="lineno"><a href="3,278" id="srcline278">278</a></span><span class="line">            F = eye(obj.nb_output);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,279" id="srcline279">279</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,280" id="srcline280">280</a></span><span class="line">    <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,281" id="srcline281">281</a></span><span class="line">    </span></span>
+<span class="srcline"><span class="lineno"><a href="3,282" id="srcline282">282</a></span><span class="line">    <span class="keyword">methods</span>(Static, Access = protected)</span></span>
+</pre>
+</div>
+<pre class="code">
+<span class="srcline"><span class="lineno"><a href="3,283" id="srcline283">283</a></span><span class="line">        <span class="keyword">function</span> <span class="var type0" id="S137T0U1450">x_dot</span> = stateEquation(<span class="var type1" id="S138T21U1453">x</span>,<span class="var type1" id="S139T23U1454">u</span>)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,284" id="srcline284">284</a></span><span class="line">            <span class="comment">% State equation: returns x_{k+1} as a function of x_k and u_k</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,285" id="srcline285">285</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,286" id="srcline286">286</a></span><span class="line">            <span class="comment">% This method is called by the Runge-Kutta method to obtain the</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,287" id="srcline287">287</a></span><span class="line">            <span class="comment">% state at the next timestep</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,288" id="srcline288">288</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,289" id="srcline289">289</a></span><span class="line">            <span class="comment">% Load parameters</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,290" id="srcline290">290</a></span><span class="line">            <span class="var type0" id="S140T0U1457">K_hsf</span> = <span class="message error" id="M1F74C">obj</span>.K_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,291" id="srcline291">291</a></span><span class="line">            <span class="var type0" id="S142T0U1463">b_hsf</span> = obj.b_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,292" id="srcline292">292</a></span><span class="line">            <span class="var type0" id="S143T0U1469">G</span>     = obj.G;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,293" id="srcline293">293</a></span><span class="line">            <span class="var type0" id="S144T0U1475">Jm_R</span>  = obj.Jm_R;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,294" id="srcline294">294</a></span><span class="line">            <span class="var type0" id="S145T0U1481">rw</span>    = obj.rw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,295" id="srcline295">295</a></span><span class="line">            <span class="var type0" id="S146T0U1487">Jw</span>    = obj.Jw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,296" id="srcline296">296</a></span><span class="line">            <span class="var type0" id="S147T0U1493">m</span>     = obj.m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,297" id="srcline297">297</a></span><span class="line">            <span class="var type0" id="S148T0U1499">c1</span>    = obj.c1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,298" id="srcline298">298</a></span><span class="line">            <span class="var type0" id="S149T0U1505">c2</span>    = obj.c2;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,299" id="srcline299">299</a></span><span class="line">            <span class="var type0" id="S150T0U1511">c3</span>    = obj.c3;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,300" id="srcline300">300</a></span><span class="line">            <span class="var type0" id="S151T0U1517">fRLz0</span> = obj.fRLz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,301" id="srcline301">301</a></span><span class="line">            <span class="var type0" id="S152T0U1523">fRRz0</span> = obj.fRRz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,302" id="srcline302">302</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,303" id="srcline303">303</a></span><span class="line">            <span class="var type0" id="S153T0U1529">ww_RL</span> = <span class="var type0" id="S138T0U1531">x</span>(3);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,304" id="srcline304">304</a></span><span class="line">            <span class="var type0" id="S154T0U1535">ww_RR</span> = <span class="var type0" id="S138T0U1537">x</span>(4);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,305" id="srcline305">305</a></span><span class="line">            <span class="var type0" id="S155T0U1541">U</span>     = <span class="var type0" id="S138T0U1543">x</span>(5);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,306" id="srcline306">306</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,307" id="srcline307">307</a></span><span class="line">            <span class="var type0" id="S156T0U1547">tau_m_R</span> = <span class="var type0" id="S139T0U1548">u</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,308" id="srcline308">308</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,309" id="srcline309">309</a></span><span class="line">            <span class="comment">% Tire slip</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,310" id="srcline310">310</a></span><span class="line">            <span class="var type0" id="S157T0U1551">sRLx</span> = (<span class="var type0" id="S145T0U1556">rw</span>*<span class="var type0" id="S153T0U1557">ww_RL</span> - <span class="var type0" id="S155T0U1558">U</span>) / <span class="var type0" id="S155T0U1559">U</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,311" id="srcline311">311</a></span><span class="line">            <span class="var type0" id="S158T0U1562">sRRx</span> = (<span class="var type0" id="S145T0U1567">rw</span>*<span class="var type0" id="S154T0U1568">ww_RR</span> - <span class="var type0" id="S155T0U1569">U</span>) / <span class="var type0" id="S155T0U1570">U</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,312" id="srcline312">312</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,313" id="srcline313">313</a></span><span class="line">            <span class="comment">% % Normal forces (TODO: solve algebraic loop)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,314" id="srcline314">314</a></span><span class="line">            <span class="var type0" id="S159T0U1573">fRLz</span> = <span class="var type0" id="S151T0U1574">fRLz0</span>;<span class="comment">% + DFx*ax;</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,315" id="srcline315">315</a></span><span class="line">            <span class="var type0" id="S160T0U1577">fRRz</span> = <span class="var type0" id="S152T0U1578">fRRz0</span>;<span class="comment">% + DFx*ax;</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,316" id="srcline316">316</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,317" id="srcline317">317</a></span><span class="line">            <span class="comment">% Tire forces 5Burckhardt model)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,318" id="srcline318">318</a></span><span class="line">            <span class="var type0" id="S161T0U1581">muRLx</span> = <span class="var type0" id="S148T0U1584">c1</span>*(1-exp(-<span class="var type0" id="S149T0U1592">c2</span>*<span class="var type0" id="S157T0U1593">sRLx</span>)) - <span class="var type0" id="S150T0U1595">c3</span>*<span class="var type0" id="S157T0U1596">sRLx</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,319" id="srcline319">319</a></span><span class="line">            <span class="var type0" id="S163T0U1599">muRRx</span> = <span class="var type0" id="S148T0U1602">c1</span>*(1-exp(-<span class="var type0" id="S149T0U1610">c2</span>*<span class="var type0" id="S158T0U1611">sRRx</span>)) - <span class="var type0" id="S150T0U1613">c3</span>*<span class="var type0" id="S158T0U1614">sRRx</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,320" id="srcline320">320</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,321" id="srcline321">321</a></span><span class="line">            <span class="var type0" id="S164T0U1617">fRLx</span> = <span class="var type0" id="S161T0U1619">muRLx</span> * <span class="var type0" id="S159T0U1620">fRLz</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,322" id="srcline322">322</a></span><span class="line">            <span class="var type0" id="S165T0U1623">fRRx</span> = <span class="var type0" id="S163T0U1625">muRRx</span> * <span class="var type0" id="S160T0U1626">fRRz</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,323" id="srcline323">323</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,324" id="srcline324">324</a></span><span class="line">            <span class="comment">% Halshaft torque</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,325" id="srcline325">325</a></span><span class="line">            <span class="var type0" id="S166T0U1629">tau_hsf</span> = <span class="var type0" id="S140T0U1632">K_hsf</span> * theta_hsf + <span class="var type0" id="S142T0U1636">b_hsf</span> * (2/<span class="var type0" id="S143T0U1643">G</span>*wm_R-<span class="var type0" id="S153T0U1646">ww_RL</span>-<span class="var type0" id="S154T0U1647">ww_RR</span>); </span></span>
+<span class="srcline"><span class="lineno"><a href="3,326" id="srcline326">326</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="3,327" id="srcline327">327</a></span><span class="line">            <span class="comment">% Equation of motion</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,328" id="srcline328">328</a></span><span class="line">            <span class="var type0" id="S169T0U1650">wm_R_dot</span>      = 1/<span class="var type0" id="S144T0U1654">Jm_R</span> * (<span class="var type0" id="S156T0U1657">tau_m_R</span> - 2/<span class="var type0" id="S143T0U1661">G</span> * <span class="var type0" id="S166T0U1662">tau_hsf</span>);  </span></span>
+<span class="srcline"><span class="lineno"><a href="3,329" id="srcline329">329</a></span><span class="line">            <span class="var type0" id="S170T0U1665">theta_hsf_dot</span> = 2/<span class="var type0" id="S143T0U1671">G</span> * wm_R - <span class="var type0" id="S153T0U1674">ww_RL</span> - <span class="var type0" id="S154T0U1675">ww_RR</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,330" id="srcline330">330</a></span><span class="line">            <span class="var type0" id="S171T0U1678">ww_RL_dot</span> = (<span class="var type0" id="S166T0U1682">tau_hsf</span> - <span class="var type0" id="S145T0U1684">rw</span> * <span class="var type0" id="S164T0U1685">fRLx</span>) /<span class="var type0" id="S146T0U1686">Jw</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,331" id="srcline331">331</a></span><span class="line">            <span class="var type0" id="S172T0U1689">ww_RR_dot</span> = (<span class="var type0" id="S166T0U1693">tau_hsf</span> - <span class="var type0" id="S145T0U1695">rw</span> * <span class="var type0" id="S165T0U1696">fRRx</span>) /<span class="var type0" id="S146T0U1697">Jw</span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,332" id="srcline332">332</a></span><span class="line">            <span class="var type0" id="S173T0U1700">U_dot</span>     = 1/<span class="var type0" id="S147T0U1704">m</span> * (<span class="var type0" id="S164T0U1707">fRLx</span> + <span class="var type0" id="S165T0U1708">fRRx</span>);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,333" id="srcline333">333</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,334" id="srcline334">334</a></span><span class="line">            <span class="comment">% Return state derivatives</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,335" id="srcline335">335</a></span><span class="line">            <span class="var type0" id="S137T0U1711">x_dot</span> = [<span class="var type0" id="S170T0U1715">theta_hsf_dot</span> <span class="var type0" id="S169T0U1716">wm_R_dot</span> <span class="var type0" id="S171T0U1717">ww_RL_dot</span> <span class="var type0" id="S172T0U1718">ww_RR_dot</span> <span class="var type0" id="S173T0U1719">U_dot</span>]';</span></span>
+<span class="srcline"><span class="lineno"><a href="3,336" id="srcline336">336</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,337" id="srcline337">337</a></span><span class="line">        </span></span>
+</pre>
+<div class="dead">
+<pre class="code">
+<span class="srcline"><span class="lineno"><a href="3,338" id="srcline338">338</a></span><span class="line">        <span class="keyword">function</span> y = outputEquation(x,~)</span></span>
+<span class="srcline"><span class="lineno"><a href="3,339" id="srcline339">339</a></span><span class="line">            <span class="comment">% Output equation: returns y_k as a function of x_k and u_k</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,340" id="srcline340">340</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,341" id="srcline341">341</a></span><span class="line">            <span class="comment">% Load parameters</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,342" id="srcline342">342</a></span><span class="line">            K_hsf = obj.K_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,343" id="srcline343">343</a></span><span class="line">            b_hsf = obj.b_hsf;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,344" id="srcline344">344</a></span><span class="line">            G     = obj.G;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,345" id="srcline345">345</a></span><span class="line">            Jm_R  = obj.Jm_R;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,346" id="srcline346">346</a></span><span class="line">            rw    = obj.rw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,347" id="srcline347">347</a></span><span class="line">            Jw    = obj.Jw;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,348" id="srcline348">348</a></span><span class="line">            m     = obj.m;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,349" id="srcline349">349</a></span><span class="line">            c1    = obj.c1;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,350" id="srcline350">350</a></span><span class="line">            c2    = obj.c2;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,351" id="srcline351">351</a></span><span class="line">            c3    = obj.c3;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,352" id="srcline352">352</a></span><span class="line">            fRLz0 = obj.fRLz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,353" id="srcline353">353</a></span><span class="line">            fRRz0 = obj.fRRz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,354" id="srcline354">354</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,355" id="srcline355">355</a></span><span class="line">            <span class="comment">% Compute wRL and wRR</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,356" id="srcline356">356</a></span><span class="line">            wRL = x(3);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,357" id="srcline357">357</a></span><span class="line">            wRR = x(4);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,358" id="srcline358">358</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,359" id="srcline359">359</a></span><span class="line">            <span class="comment">% Compute U_dot</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,360" id="srcline360">360</a></span><span class="line">            U = x(5);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,361" id="srcline361">361</a></span><span class="line">            sRLx  = (rw*wRL - U) / U;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,362" id="srcline362">362</a></span><span class="line">            sRRx  = (rw*wRR - U) / U;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,363" id="srcline363">363</a></span><span class="line">            fRLz  = fRLz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,364" id="srcline364">364</a></span><span class="line">            fRRz  = fRRz0;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,365" id="srcline365">365</a></span><span class="line">            muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,366" id="srcline366">366</a></span><span class="line">            muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,367" id="srcline367">367</a></span><span class="line">            fRLx  = muRLx * fRLz;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,368" id="srcline368">368</a></span><span class="line">            fRRx  = muRRx * fRRz;</span></span>
+<span class="srcline"><span class="lineno"><a href="3,369" id="srcline369">369</a></span><span class="line">            U_dot = 1/m * (fRLx + fRRx);</span></span>
+<span class="srcline"><span class="lineno"><a href="3,370" id="srcline370">370</a></span><span class="line">            </span></span>
+<span class="srcline"><span class="lineno"><a href="3,371" id="srcline371">371</a></span><span class="line">            <span class="comment">% Return the output</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,372" id="srcline372">372</a></span><span class="line">            y = [U_dot wRL wRR]';</span></span>
+<span class="srcline"><span class="lineno"><a href="3,373" id="srcline373">373</a></span><span class="line">        <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,374" id="srcline374">374</a></span><span class="line">    <span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,375" id="srcline375">375</a></span><span class="line"><span class="keyword">end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="3,376" id="srcline376">376</a></span><span class="line"> </span></span>
+</pre>
+</div>
+</body>
+</html>
