@@ -46,12 +46,15 @@ classdef extendedKalmanFilter < matlab.System & ...
         Jw = 0.9;
         % Vehicle mass
         m = 1530;
-        % Burckhardt parameters
-        c1 = 1.2801;
+        % c1
+        c1 = 1.2801;    % Burckhardt parameters
+        % c2
         c2 = 23.99;
+        % c3
         c3 = 0.25;
-        % Normal forces
+        % fRLz0
         fRLz0 = 2.9695e+03;
+        % fRRz0
         fRRz0 = 2.9695e+03;
     end
 
@@ -70,7 +73,7 @@ classdef extendedKalmanFilter < matlab.System & ...
     end
 
     methods(Access = protected)
-        function setupImpl(obj)
+        function setupImpl(~)
             % Perform one-time calculations, such as computing constants
         end
 
@@ -108,12 +111,13 @@ classdef extendedKalmanFilter < matlab.System & ...
         function resetImpl(obj)
             % Initialize / reset discrete-state properties
             obj.x_aposteriori = obj.x_init;
-            obj.P_aposteriori = zeros(obj.nb_state);
+            obj.P_aposteriori = eye(obj.nb_state);
             obj.u_k = zeros(obj.nb_input,1);
-            obj.Q_k = zeros(obj.nb_input);
+            obj.Q_k = eye(obj.nb_input);
         end
         
         function sts = getSampleTimeImpl(obj)
+            % Define sampling time
             sts = createSampleTime(obj,'Type','Discrete Periodic',...
               'SampleTime',obj.Ts,'OffsetTime',0);
         end
@@ -218,17 +222,17 @@ classdef extendedKalmanFilter < matlab.System & ...
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
             
-            theta_hsf = x(1);
-            wm_R  = x(2);
+            % theta_hsf = x(1);
+            % wm_R  = x(2);
             ww_RL = x(3);
             ww_RR = x(4);
             U     = x(5);
             
-            A = [                 0,                   2/G,                                                                           -1,                                                                           -1,                                                                                                                                                                                                                      0;
-                -(2*K_hsf)/(G*Jm_R), -(4*b_hsf)/(G^2*Jm_R),                                                           (2*b_hsf)/(G*Jm_R),                                                           (2*b_hsf)/(G*Jm_R),                                                                                                                                                                                                                      0;
-                           K_hsf/Jw,      (2*b_hsf)/(G*Jw), -(b_hsf - fRLz0*rw*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RL))/U))/U))/Jw,                                                                    -b_hsf/Jw,                                                                                                        (fRLz0*rw*((c3*(U - rw*ww_RL))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RL))/U)*(c2/U - (c2*(U - rw*ww_RL))/U^2)))/Jw;
-                           K_hsf/Jw,      (2*b_hsf)/(G*Jw),                                                                    -b_hsf/Jw, -(b_hsf - fRRz0*rw*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RR))/U))/U))/Jw,                                                                                                        (fRRz0*rw*((c3*(U - rw*ww_RR))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RR))/U)*(c2/U - (c2*(U - rw*ww_RR))/U^2)))/Jw;
-                                  0,                     0,             -(fRLz0*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RL))/U))/U))/m,             -(fRRz0*((c3*rw)/U - (c1*c2*rw*exp((c2*(U - rw*ww_RR))/U))/U))/m, -(fRLz0*((c3*(U - rw*ww_RL))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RL))/U)*(c2/U - (c2*(U - rw*ww_RL))/U^2)) + fRRz0*((c3*(U - rw*ww_RR))/U^2 - c3/U + c1*exp((c2*(U - rw*ww_RR))/U)*(c2/U - (c2*(U - rw*ww_RR))/U^2)))/m];
+            A = [                   0,                   2/G,                                                                              -1,                                                                              -1,                                                                                                                                            0;
+                  -(2*K_hsf)/(G*Jm_R), -(4*b_hsf)/(G^2*Jm_R),                                                              (2*b_hsf)/(G*Jm_R),                                                              (2*b_hsf)/(G*Jm_R),                                                                                                                                            0;
+                             K_hsf/Jw,      (2*b_hsf)/(G*Jw), -(U*b_hsf - c3*fRLz0*rw^2 + c1*c2*fRLz0*rw^2*exp((c2*(U - rw*ww_RL))/U))/(Jw*U),                                                                       -b_hsf/Jw,                                                                         -(fRLz0*rw^2*ww_RL*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(Jw*U^2);
+                             K_hsf/Jw,      (2*b_hsf)/(G*Jw),                                                                       -b_hsf/Jw, -(U*b_hsf - c3*fRRz0*rw^2 + c1*c2*fRRz0*rw^2*exp((c2*(U - rw*ww_RR))/U))/(Jw*U),                                                                         -(fRRz0*rw^2*ww_RR*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(Jw*U^2);
+                                    0,                     0,                       -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m),                       -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m)];
             A = eye(obj.nb_state) + A * obj.Ts;
             E = eye(obj.nb_input);
         end
@@ -270,9 +274,10 @@ classdef extendedKalmanFilter < matlab.System & ...
                 exp((c2*(U-rw*ww_RL))/U)*(c2/U-(c2*(U-rw*ww_RL))/U^2))+...
                 fRRz0*((c3*(U-rw*ww_RR))/U^2-c3/U+c1*...
                 exp((c2*(U-rw*ww_RR))/U)*(c2/U-(c2*(U-rw*ww_RR))/U^2)))/m;
-            C = [0 0 C13 C14 C15;
-                 0 0 1   0   0;
-                 0 0 0   1   0];
+            C = [ 0, 0, -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m), -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m);
+                  0, 0,                                                         1,                                                         0,                                                                                                                                            0;
+                  0, 0,                                                         0,                                                         1,                                                                                                                                            0];
+            
             F = eye(obj.nb_output);
         end
         

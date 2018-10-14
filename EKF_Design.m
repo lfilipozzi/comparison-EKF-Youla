@@ -55,6 +55,11 @@ B_sym = jacobian(x_dot,u);
 C_sym = jacobian(y,x);
 D_sym = jacobian(y,u);
 
+A_sym = simplify(A_sym);
+B_sym = simplify(B_sym);
+C_sym = simplify(C_sym);
+D_sym = simplify(D_sym);
+
 %% Evaluate matrices
 run parameters.m
 
