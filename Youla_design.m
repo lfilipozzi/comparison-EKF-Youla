@@ -57,11 +57,12 @@ M_P    = zpk(sym2tf(M_Psym));
 M_P    = minreal(M_P);
 
 %% Controller
-wn = 10;
-ksi = 0.5;
-g = (wn^2/(s^2+2*ksi*wn*s+wn^2))^2;
+zeta = 1/sqrt(2);
+w0 = 2*pi*5 / sqrt(sqrt(4*zeta^4+1) - 2*zeta^2);
 
-M_Y = [g*s*(s^2 + 72.14*s + 7214),0;0,g*s/(s^2 + 26.3*s + 2630)];
+g = w0^2/(s^2+2*zeta*w0*s+w0^2);
+
+M_Y = [1/M_P(1,1) 0; 0 1/M_P(2,2)]*g;
 M_T = minreal(M_P*M_Y,1e-4);
 
 Y = minreal(U_R*M_Y*U_L,1e-5);
@@ -82,5 +83,5 @@ bodemag(Y,w,'k')
 legend({'T_y','S_y','Y'},'location','best')
 saveas(gcf,'Youal_controller_bode.png')
 
-
+save('Youla_controller.mat')
 
