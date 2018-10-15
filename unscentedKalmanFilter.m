@@ -207,7 +207,7 @@ classdef unscentedKalmanFilter < matlab.System & ...
 %             [cholesky_dec,p] = chol(obj.nb_state*covariance);
 %             cholesky_dec = cholesky_dec'
 %             p
-            cholesky_dec = cholcov(obj.nb_state*covariance)';
+            cholesky_dec = chol(obj.nb_state*covariance)';
             
             % Compute sigma points
             X_sigma_points = zeros(obj.nb_state,2*obj.nb_state);
