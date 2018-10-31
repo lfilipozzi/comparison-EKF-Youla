@@ -111,7 +111,7 @@ classdef extendedKalmanFilter < matlab.System & ...
         function resetImpl(obj)
             % Initialize / reset discrete-state properties
             obj.x_aposteriori = obj.x_init;
-            obj.P_aposteriori = eye(obj.nb_state);
+            obj.P_aposteriori = eye(obj.nb_state)/1000;
             obj.u_k = zeros(obj.nb_input,1);
             obj.Q_k = eye(obj.nb_input);
         end
@@ -266,14 +266,6 @@ classdef extendedKalmanFilter < matlab.System & ...
             ww_RR = x(4);
             U     = x(5);
             
-            C13 = -(fRLz0*((c3*rw)/U-(c1*c2*rw*exp((c2*(U-rw*ww_RL))/U))...
-                /U))/m;
-            C14 = -(fRRz0*((c3*rw)/U-(c1*c2*rw*exp((c2*(U-rw*ww_RR))/U))...
-                /U))/m;
-            C15 = -(fRLz0*((c3*(U-rw*ww_RL))/U^2-c3/U+c1*...
-                exp((c2*(U-rw*ww_RL))/U)*(c2/U-(c2*(U-rw*ww_RL))/U^2))+...
-                fRRz0*((c3*(U-rw*ww_RR))/U^2-c3/U+c1*...
-                exp((c2*(U-rw*ww_RR))/U)*(c2/U-(c2*(U-rw*ww_RR))/U^2)))/m;
             C = [ 0, 0, -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m), -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m);
                   0, 0,                                                         1,                                                         0,                                                                                                                                            0;
                   0, 0,                                                         0,                                                         1,                                                                                                                                            0];

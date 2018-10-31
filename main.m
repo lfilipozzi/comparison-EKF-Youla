@@ -8,13 +8,14 @@ Gc = load('Youla_controller.mat','Gc');
 Gc = Gc.Gc;
 
 %% Define initial conditions
-U_0 = 100/3.6;
+U_0 = 50/3.6;
 disp(['Initial velocity: ',num2str(3.6*U_0),' km/h'])
+disp(['Road inclination: ',num2str(100*tan(alpha)),'m / 100m'])
 chassis_state_init   = [U_0 0 0 U_0/rw U_0/rw U_0/rw U_0/rw 0 0 0];
 rear_axle_state_init = [G*U_0/rw 0];
 
 %% Set sensor parameters
-Ts_sensor = 0.001;   % Sampling time of the sensors
+Ts_sensor = 0.001;  % Sampling time of the sensors
 sigma_ax  = 0.5;    % Covariance of accelerometers
 sigma_wij = 0.1;    % Covariance of wheel speed sensors
 
@@ -66,6 +67,7 @@ set_param('model/UKF',...
     'fRRz0',num2str(fRRz0))
 
 %% Run simulation
+m = 1.2*m;
 sim('model')
 
 %% Plot results

@@ -86,4 +86,12 @@ c1 = 1.2801;
 c2 = 23.99;
 c3 = 0.25;
 
+% Pacejka's magic formula
+B = 7.1;
+C = 1.3;
+D = 1;
+
+%% Road parameters
+alpha = 0;  % Road inclination (%)
+alpha = atan(alpha/100);    % Convert into angle
 

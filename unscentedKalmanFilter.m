@@ -148,7 +148,7 @@ classdef unscentedKalmanFilter < matlab.System & ...
         function resetImpl(obj)
             % Initialize / reset discrete-state properties
             obj.x_aposteriori = obj.x_init;
-            obj.P_aposteriori = eye(obj.nb_state);
+            obj.P_aposteriori = eye(obj.nb_state)/1000;
             obj.u_k = zeros(obj.nb_input,1);
             obj.Q_k = eye(obj.nb_state);
         end
@@ -203,10 +203,8 @@ classdef unscentedKalmanFilter < matlab.System & ...
         end
         
         function X_sigma_points = createSigmaPoints(obj,mean,covariance)
-            % Compute Cholesky decomposition
-%             [cholesky_dec,p] = chol(obj.nb_state*covariance);
-%             cholesky_dec = cholesky_dec'
-%             p
+            % TODO: change code to allow to use Cholesky decomposition of
+            % semi-positive definte matrix
             cholesky_dec = chol(obj.nb_state*covariance)';
             
             % Compute sigma points
@@ -305,8 +303,32 @@ classdef unscentedKalmanFilter < matlab.System & ...
             
             % Compute U_dot
             U = x(5);
-            sRLx  = (rw*wRL - U) / U;
-            sRRx  = (rw*wRR - U) / U;
+            % RL longitudinal slip
+            vRLx = U;
+            if abs(rw*wRL) > abs(vRLx)
+                den = rw*wRL;
+            else
+                den = vRLx;
+            end
+            if den == 0
+                sRLx = 0;
+            else
+                sRLx = -(vRLx - rw * wRL) / den;
+            end
+            % RR longitudinal slip
+            vRRx = U;
+            if abs(rw*wRR) > abs(vRRx)
+                den = rw*wRR;
+            else
+                den = vRRx;
+            end
+            if den == 0
+                sRRx = 0;
+            else
+                sRRx = -(vRRx - rw * wRR) / den;
+            end
+%             sRLx  = (rw*wRL - U) / U;
+%             sRRx  = (rw*wRR - U) / U;
             fRLz  = fRLz0;
             fRRz  = fRRz0;
             muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;

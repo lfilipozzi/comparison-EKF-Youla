@@ -6,3 +6,4 @@
 *.slx.original
 *.slx.r2016b
 *.m~
+*.fuse_hidden*
