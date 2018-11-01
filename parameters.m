@@ -91,6 +91,29 @@ B = 7.1;
 C = 1.3;
 D = 1;
 
+% % Coef from Mathworks:
+% % https://www.mathworks.com/help/physmod/sdl/ref/tireroadinteractionmagicformula.html
+% % Dry tarmac	
+% B = 10;	
+% C = 1.9;
+% D = 1;
+% E = 0.97;
+% % Wet tarmac
+% B = 12;
+% C = 2.3;
+% D = 0.82;
+% E = 1;
+% % Snow	
+% B = 5;
+% C = 2;
+% D = 0.3;
+% E = 1;
+% % Ice
+% B = 4;
+% C = 2;
+% D = 0.1;
+% E = 1;
+
 %% Road parameters
 alpha = 0;  % Road inclination (%)
 alpha = atan(alpha/100);    % Convert into angle
