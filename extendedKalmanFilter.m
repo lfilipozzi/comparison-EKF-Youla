@@ -56,6 +56,14 @@ classdef extendedKalmanFilter < matlab.System & ...
         fRLz0 = 2.9695e+03;
         % fRRz0
         fRRz0 = 2.9695e+03;
+        % CRx
+        CRx = 4.3302e+04;
+        % muRL0
+        muRL0 = 1;
+        % muRR0
+        muRR0 = 1;
+        % epsDugoff
+        epsDugoff = 0.01;
     end
 
     properties(DiscreteState)
@@ -221,6 +229,10 @@ classdef extendedKalmanFilter < matlab.System & ...
             c3    = obj.c3;
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
+            CRx   = obj.CRx;
+            muRL0 = obj.muRL0;
+            muRR0 = obj.muRR0;
+            epsDugoff = obj.epsDugoff;
             
             % theta_hsf = x(1);
             % wm_R  = x(2);
@@ -228,11 +240,18 @@ classdef extendedKalmanFilter < matlab.System & ...
             ww_RR = x(4);
             U     = x(5);
             
-            A = [                   0,                   2/G,                                                                              -1,                                                                              -1,                                                                                                                                            0;
-                  -(2*K_hsf)/(G*Jm_R), -(4*b_hsf)/(G^2*Jm_R),                                                              (2*b_hsf)/(G*Jm_R),                                                              (2*b_hsf)/(G*Jm_R),                                                                                                                                            0;
-                             K_hsf/Jw,      (2*b_hsf)/(G*Jw), -(U*b_hsf - c3*fRLz0*rw^2 + c1*c2*fRLz0*rw^2*exp((c2*(U - rw*ww_RL))/U))/(Jw*U),                                                                       -b_hsf/Jw,                                                                         -(fRLz0*rw^2*ww_RL*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(Jw*U^2);
-                             K_hsf/Jw,      (2*b_hsf)/(G*Jw),                                                                       -b_hsf/Jw, -(U*b_hsf - c3*fRRz0*rw^2 + c1*c2*fRRz0*rw^2*exp((c2*(U - rw*ww_RR))/U))/(Jw*U),                                                                         -(fRRz0*rw^2*ww_RR*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(Jw*U^2);
-                                    0,                     0,                       -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m),                       -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m)];
+%             % Burckhardt tire model
+%             A = [                   0,                   2/G,                                                                              -1,                                                                              -1,                                                                                                                                            0;
+%                   -(2*K_hsf)/(G*Jm_R), -(4*b_hsf)/(G^2*Jm_R),                                                              (2*b_hsf)/(G*Jm_R),                                                              (2*b_hsf)/(G*Jm_R),                                                                                                                                            0;
+%                              K_hsf/Jw,      (2*b_hsf)/(G*Jw), -(U*b_hsf - c3*fRLz0*rw^2 + c1*c2*fRLz0*rw^2*exp((c2*(U - rw*ww_RL))/U))/(Jw*U),                                                                       -b_hsf/Jw,                                                                         -(fRLz0*rw^2*ww_RL*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(Jw*U^2);
+%                              K_hsf/Jw,      (2*b_hsf)/(G*Jw),                                                                       -b_hsf/Jw, -(U*b_hsf - c3*fRRz0*rw^2 + c1*c2*fRRz0*rw^2*exp((c2*(U - rw*ww_RR))/U))/(Jw*U),                                                                         -(fRRz0*rw^2*ww_RR*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(Jw*U^2);
+%                                     0,                     0,                       -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m),                       -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m)];
+            
+            % Dugoff tire model (linear region)
+            [A,~] = handLinearizationDugoff(ww_RL,ww_RR,U,...
+                K_hsf,b_hsf,G,Jm_R,rw,Jw,m,fRLz0,fRRz0,CRx,muRL0,muRR0,epsDugoff);
+            
+            % Discretize A and give E
             A = eye(obj.nb_state) + A * obj.Ts;
             E = eye(obj.nb_input);
         end
@@ -259,6 +278,10 @@ classdef extendedKalmanFilter < matlab.System & ...
             c3    = obj.c3;
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
+            CRx   = obj.CRx;
+            muRL0 = obj.muRL0;
+            muRR0 = obj.muRR0;
+            epsDugoff = obj.epsDugoff;
             
             % theta_hsf = x(1);
             % wm_R  = x(2);
@@ -266,10 +289,16 @@ classdef extendedKalmanFilter < matlab.System & ...
             ww_RR = x(4);
             U     = x(5);
             
-            C = [ 0, 0, -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m), -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m);
-                  0, 0,                                                         1,                                                         0,                                                                                                                                            0;
-                  0, 0,                                                         0,                                                         1,                                                                                                                                            0];
+            % Burckhardt tire model
+%             C = [ 0, 0, -(fRLz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RL))/U)))/(U*m), -(fRRz0*rw*(c3 - c1*c2*exp((c2*(U - rw*ww_RR))/U)))/(U*m), (rw*(c3*fRLz0*ww_RL + c3*fRRz0*ww_RR - c1*c2*fRLz0*ww_RL*exp((c2*(U - rw*ww_RL))/U) - c1*c2*fRRz0*ww_RR*exp((c2*(U - rw*ww_RR))/U)))/(U^2*m);
+%                   0, 0,                                                         1,                                                         0,                                                                                                                                            0;
+%                   0, 0,                                                         0,                                                         1,                                                                                                                                            0];
             
+            % Dugofff tire model
+            [~,C] = handLinearizationDugoff(ww_RL,ww_RR,U,...
+                K_hsf,b_hsf,G,Jm_R,rw,Jw,m,fRLz0,fRRz0,CRx,muRL0,muRR0,epsDugoff);
+            
+            % Compute F
             F = eye(obj.nb_output);
         end
         
@@ -292,6 +321,10 @@ classdef extendedKalmanFilter < matlab.System & ...
             c3    = obj.c3;
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
+            CRx   = obj.CRx;
+            muRL0 = obj.muRL0;
+            muRR0 = obj.muRR0;
+            epsDugoff = obj.epsDugoff;
             
             theta_hsf = x(1);
             wm_R      = x(2);
@@ -309,13 +342,21 @@ classdef extendedKalmanFilter < matlab.System & ...
             fRLz = fRLz0;% + DFx*ax;
             fRRz = fRRz0;% + DFx*ax;
 
-            % Tire forces 5Burckhardt model)
-            muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;
-            muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;
-
-            fRLx = muRLx * fRLz;
-            fRRx = muRRx * fRRz;
-
+            % Tire forces (Burckhardt model)
+%             muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;
+%             muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;
+%             fRLx = muRLx * fRLz;
+%             fRRx = muRRx * fRRz;
+            
+            % Tire forces (Dugoff)
+            alphaRL = 0;
+            alphaRR = 0;
+            vRLx = U;
+            vRRx = U;
+            CRy = 0;
+            [fRLx,~] = Dugoff(CRx,CRy,fRLz,sRLx,alphaRL,vRLx,muRL0,epsDugoff);
+            [fRRx,~] = Dugoff(CRx,CRy,fRRz,sRRx,alphaRR,vRRx,muRR0,epsDugoff);
+            
             % Halshaft torque
             tau_hsf = K_hsf * theta_hsf + b_hsf * (2/G*wm_R-ww_RL-ww_RR); 
 
@@ -346,6 +387,10 @@ classdef extendedKalmanFilter < matlab.System & ...
             c3    = obj.c3;
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
+            CRx   = obj.CRx;
+            muRL0 = obj.muRL0;
+            muRR0 = obj.muRR0;
+            epsDugoff = obj.epsDugoff;
             
             % Compute wRL and wRR
             wRL = x(3);
@@ -357,10 +402,23 @@ classdef extendedKalmanFilter < matlab.System & ...
             sRRx  = (rw*wRR - U) / U;
             fRLz  = fRLz0;
             fRRz  = fRRz0;
+            
+            % Burckhardt tire model
             muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;
             muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;
             fRLx  = muRLx * fRLz;
             fRRx  = muRRx * fRRz;
+            
+            % Dugoff tire model
+            alphaRL = 0;
+            alphaRR = 0;
+            vRLx = U;
+            vRRx = U;
+            CRy = 0;
+            [fRLx,~] = Dugoff(CRx,CRy,fRLz,sRLx,alphaRL,vRLx,muRL0,epsDugoff);
+            [fRRx,~] = Dugoff(CRx,CRy,fRRz,sRRx,alphaRR,vRRx,muRR0,epsDugoff);
+            
+            % Compute U_dot
             U_dot = 1/m * (fRLx + fRRx);
             
             % Return the output

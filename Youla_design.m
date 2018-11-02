@@ -5,6 +5,19 @@
 %% Linearizing the Plant 
 % Load Parameters
 parameters
+
+% Use value of estimated parameters (not true value)
+m = m_est;
+rw = rw_est;
+fFLz0 = fFLz0_est;
+fFRz0 = fFRz0_est;
+fRLz0 = fRLz0_est;
+fRRz0 = fRRz0_est;
+DFx   = DFx_est;
+DFFy  = DFFy_est;
+DFRy  = DFRy_est;
+
+% Rename parameters that need to be renamed
 Jm = Jm_R;
 K_hsr = K_hsf;
 b_hsr = b_hsf;

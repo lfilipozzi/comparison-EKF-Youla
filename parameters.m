@@ -77,8 +77,14 @@ b_sf_R = 0.8*180/pi;   % Motor axle halfshaft damping  (Nms/rad)
 
 %% Tire parameters
 % Dugoff tire model
-Cx = 866.05/0.02;           % Tire longitudinal stiffness
-Cy = 248.08/(0.5*pi/180);   % Tire lateral stiffness
+CFx = 866.05/0.02;           % Tire longitudinal stiffness
+CFy = 248.08/(0.5*pi/180);   % Tire lateral stiffness
+CRx = 866.05/0.02;           % Tire longitudinal stiffness
+CRy = 248.08/(0.5*pi/180);   % Tire lateral stiffness
+muFL0 = 1;                   % Maximum friction coefficient
+muFR0 = muFL0;
+muRL0 = muFL0;
+muRR0 = muFL0;
 epsDugoff = 0.01;
 
 % Burckhardt tire model
@@ -113,6 +119,36 @@ D = 1;
 % C = 2;
 % D = 0.1;
 % E = 1;
+
+%% Estimation parameters
+% Chassis parameters
+m_est = m;
+rw_est = rw;
+
+% Compute static normal forces and weight transfer due to acceleration
+fFLz0_est = m_est*g*b/(2*l); % Static normal force on the FR wheel (N)
+fFRz0_est = m_est*g*b/(2*l); % Static normal force on the FL wheel (N)
+fRLz0_est = m_est*g*a/(2*l); % Static normal force on the RL wheel (N)
+fRRz0_est = m_est*g*a/(2*l); % Static normal force on the RR wheel (N)
+DFx_est   = m_est*h/(2*l);   % Level arm due to longitudinal acceleration (m)
+DFFy_est  = m_est*h*b/(T*l); % Level arm due to lateral acceleration front axle (m)
+DFRy_est  = m_est*h*a/(T*l); % Level arm due to lateral acceleration rear axle (m)
+
+% Dugoff tire model
+CFx_est = CFx;      % Tire longitudinal stiffness
+CFy_est = CFy;      % Tire lateral stiffness
+CRx_est = CFx;      % Tire longitudinal stiffness
+CRy_est = CFy;      % Tire lateral stiffness
+muFL0_est = muFL0;  % Maximum friction coefficient
+muFR0_est = muFR0;
+muRL0_est = muRL0;
+muRR0_est = muRR0;
+epsDugoff_est = epsDugoff;
+
+% Burckhardt tire model
+c1_est = c1;
+c2_est = c2;
+c3_est = c3;
 
 %% Road parameters
 alpha = 0;  % Road inclination (%)

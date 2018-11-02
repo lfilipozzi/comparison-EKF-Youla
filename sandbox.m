@@ -21,3 +21,33 @@ plot(t,y*180/pi)
 % SWA_swdwell = [t;y]';
 
 % save sinewdwell_SWA SWA_swdwell
+
+%% Plot Dugoff
+alpha = 0;
+s = linspace(-2,2,100);
+fz = m*g/4; 
+Cx = CRx;
+Cy = CRy;
+U = 50/3.6;
+mu0 = .5;
+
+fx = zeros(size(s));
+for i = 1:length(s)
+    [fx(i),~] = Dugoff(Cx,Cy,fz,s(i),alpha,U,mu0,epsDugoff);
+end
+
+figure(10)
+hold on
+plot(s,fx)
+    
+
+%% Check observability
+U = 80/3.6;
+ratio = .9;
+ww_RL = ratio*U/rw;
+ww_RR = ratio*U/rw;
+[A,C] = handLinearizationDugoff(ww_RL,ww_RR,U,...
+    K_hsf,b_hsf,G,Jm_R,rw,Jw,m,fRLz0,fRRz0,CRx,muRL0,muRR0,epsDugoff);
+rank(obsv(A,C))
+    
+    

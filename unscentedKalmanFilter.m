@@ -54,6 +54,14 @@ classdef unscentedKalmanFilter < matlab.System & ...
         fRLz0 = 2.9695e+03;
         % fRRz0
         fRRz0 = 2.9695e+03;
+        % Cx
+        CRx = 4.3302e+04;
+        % muRL0
+        muRL0 = 1;
+        % muRR0
+        muRR0 = 1;
+        % epsDugoff
+        epsDugoff = 0.01;
     end
 
     properties(DiscreteState)
@@ -242,6 +250,10 @@ classdef unscentedKalmanFilter < matlab.System & ...
             c3    = obj.c3;
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
+            CRx   = obj.CRx;
+            muRL0 = obj.muRL0;
+            muRR0 = obj.muRR0;
+            epsDugoff = obj.epsDugoff;
             
             theta_hsf = x(1);
             wm_R      = x(2);
@@ -259,12 +271,20 @@ classdef unscentedKalmanFilter < matlab.System & ...
             fRLz = fRLz0;% + DFx*ax;
             fRRz = fRRz0;% + DFx*ax;
 
-            % Tire forces 5Burckhardt model)
-            muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;
-            muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;
-
-            fRLx = muRLx * fRLz;
-            fRRx = muRRx * fRRz;
+%             % Tire forces (Burckhardt model)
+%             muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;
+%             muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;
+%             fRLx = muRLx * fRLz;
+%             fRRx = muRRx * fRRz;
+            
+            % Dugoff tire model
+            alphaRL = 0;
+            alphaRR = 0;
+            vRLx = U;
+            vRRx = U;
+            CRy = 0;
+            [fRLx,~] = Dugoff(CRx,CRy,fRLz,sRLx,alphaRL,vRLx,muRL0,epsDugoff);
+            [fRRx,~] = Dugoff(CRx,CRy,fRRz,sRRx,alphaRR,vRRx,muRR0,epsDugoff);
 
             % Halshaft torque
             tau_hsf = K_hsf * theta_hsf + b_hsf * (2/G*wm_R-ww_RL-ww_RR); 
@@ -296,6 +316,10 @@ classdef unscentedKalmanFilter < matlab.System & ...
             c3    = obj.c3;
             fRLz0 = obj.fRLz0;
             fRRz0 = obj.fRRz0;
+            CRx   = obj.CRx;
+            muRL0 = obj.muRL0;
+            muRR0 = obj.muRR0;
+            epsDugoff = obj.epsDugoff;
             
             % Compute wRL and wRR
             wRL = x(3);
@@ -329,12 +353,26 @@ classdef unscentedKalmanFilter < matlab.System & ...
             end
 %             sRLx  = (rw*wRL - U) / U;
 %             sRRx  = (rw*wRR - U) / U;
+            
             fRLz  = fRLz0;
             fRRz  = fRRz0;
+            
+            % Burckhartd tire model
             muRLx = c1*(1-exp(-c2*sRLx)) - c3*sRLx;
             muRRx = c1*(1-exp(-c2*sRRx)) - c3*sRRx;
             fRLx  = muRLx * fRLz;
             fRRx  = muRRx * fRRz;
+            
+            % Dugoff tire model
+            alphaRL = 0;
+            alphaRR = 0;
+            vRLx = U;
+            vRRx = U;
+            CRy = 0;
+            [fRLx,~] = Dugoff(CRx,CRy,fRLz,sRLx,alphaRL,vRLx,muRL0,epsDugoff);
+            [fRRx,~] = Dugoff(CRx,CRy,fRRz,sRRx,alphaRR,vRRx,muRR0,epsDugoff);
+            
+            % Compute U_dot
             U_dot = 1/m * (fRLx + fRRx);
             
             % Return the output
